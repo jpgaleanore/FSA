@@ -1,0 +1,51 @@
+{
+  "type": "record",
+  "name": "UserRegisteredEvent",
+  "namespace": "com.funlam.userservice.events",
+  "doc": "Evento emitido cuando un usuario se registra en el sistema",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "doc": "UUID del usuario"
+    },
+    {
+      "name": "nombre",
+      "type": "string",
+      "doc": "Nombre del usuario"
+    },
+    {
+      "name": "apellido",
+      "type": "string",
+      "doc": "Apellido del usuario"
+    },
+    {
+      "name": "edad",
+      "type": "int",
+      "doc": "Edad del usuario"
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "doc": "Correo electrónico del usuario"
+    },
+    {
+      "name": "telefono",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Número de teléfono del usuario (opcional)"
+    },
+    {
+      "name": "direccion",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Dirección del usuario (opcional)"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Timestamp del evento en milisegundos (epoch time)"
+    }
+  ]
+}
+

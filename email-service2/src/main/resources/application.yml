@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: email-service
+
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+          configuration:
+            key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            value.deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+            schema.registry.url: http://localhost:8085
+            specific.avro.reader: true
+      bindings:
+        userRegisterListener-in-0:
+          destination: userRegister
+          group: email-service-group
+          content-type: application/*+avro
+          consumer:
+            use-native-decoding: true
+      function:
+        definition: userRegisterListener
+
+server:
+  port: 8082
+
+logging:
+  level:
+    com.funlam.emailservice: DEBUG
+    org.springframework.cloud.stream: DEBUG
+
