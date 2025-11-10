@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: metrics-service
+
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+          configuration:
+            key.deserializer: org.apache.kafka.common.serialization.StringDeserializer
+            value.deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+            schema.registry.url: http://localhost:8085
+            specific.avro.reader: true
+      bindings:
+        userRegisterListener-in-0:
+          destination: userRegister
+          group: metrics-service-group
+          content-type: application/*+avro
+          consumer:
+            use-native-decoding: true
+      function:
+        definition: userRegisterListener
+
+metrics:
+  excel:
+    output-directory: ./metrics-data
+
+server:
+  port: 8083
+
+logging:
+  level:
+    com.funlam.metricsservice: DEBUG
+    org.springframework.cloud.stream: DEBUG
+
