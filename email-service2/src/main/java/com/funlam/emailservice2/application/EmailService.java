@@ -1,11 +1,17 @@
-package com.funlam.emailservice2.application.service;
+package com.funlam.emailservice2.application;
 
 import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class EmailService {
+
+    private final JavaMailSender mailSender;
 
     /**
      * Envía un correo electrónico de bienvenida al usuario registrado
@@ -16,25 +22,18 @@ public class EmailService {
      */
     public void sendWelcomeEmail(String email, String nombre, String apellido) {
         try {
-            // TODO: Implementar envío real de email con JavaMailSender o servicio externo
-            // Por ahora, simulamos el envío con logs
-
             String subject = "¡Bienvenido a nuestra plataforma!";
             String body = buildWelcomeEmailBody(nombre, apellido);
 
-            log.info("📧 ===== ENVIANDO EMAIL DE BIENVENIDA =====");
-            log.info("📧 Para: {}", email);
-            log.info("📧 Asunto: {}", subject);
-            log.info("📧 Contenido:\n{}", body);
-            log.info("📧 ==========================================");
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(email);
+            message.setSubject(subject);
+            message.setText(body);
+            mailSender.send(message);
 
-            // Simular procesamiento
-            Thread.sleep(500);
-
-            log.info("✅ Email de bienvenida enviado exitosamente a: {}", email);
-
+            log.info("Email de bienvenida enviado exitosamente a: {}", email);
         } catch (Exception e) {
-            log.error("❌ Error al enviar email de bienvenida a: {}", email, e);
+            log.error("Error al enviar email de bienvenida a: {}", email, e);
             throw new RuntimeException("Error enviando email de bienvenida", e);
         }
     }
@@ -58,16 +57,24 @@ public class EmailService {
             ¡Gracias por unirte!
             
             Saludos cordiales,
-            El equipo de FSA
+            El equipo de arquitectura de software
             """, nombre, apellido);
     }
 
     /**
      * Envía un correo de notificación genérico
      */
-    public void sendNotification(String email, String subject, String message) {
-        log.info("📧 Enviando notificación a: {} | Asunto: {}", email, subject);
-        log.info("📧 Mensaje: {}", message);
+    public void sendNotification(String email, String subject, String messageText) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(email);
+            message.setSubject(subject);
+            message.setText(messageText);
+            mailSender.send(message);
+            log.info("Notificación enviada exitosamente a: {}", email);
+        } catch (Exception e) {
+            log.error("Error al enviar notificación a: {}", email, e);
+            throw new RuntimeException("Error enviando notificación", e);
+        }
     }
 }
-

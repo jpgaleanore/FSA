@@ -1,6 +1,58 @@
 # FSA - Final Project Of Software Architecture
 
-Proyecto modular de microservicios con Spring Boot y Maven.
+Proyecto modular de microservicios con Spring Boot y Maven que implementa una arquitectura basada en eventos usando Kafka para la comunicación asíncrona entre servicios.
+
+## 📋 Descripción del Proyecto
+
+Este proyecto implementa un sistema de gestión de usuarios con notificaciones automáticas por correo electrónico, utilizando una arquitectura de microservicios orientada a eventos.
+
+### Arquitectura del Sistema
+
+![Arquitectura FSA](static/fsa-archiv1.png)
+
+### 🏗️ Servicios
+
+#### 1. **User Service** (Puerto 8081)
+Microservicio REST que gestiona el registro y administración de usuarios.
+- **Funcionalidades**:
+  - Registro de nuevos usuarios
+  - Almacenamiento en base de datos MySQL
+  - Publicación de eventos de registro en Kafka
+- **Tecnologías**: Spring Boot, Spring Data JDBC, MySQL, Kafka Producer
+- **API Documentation**: http://localhost:8081/swagger-ui.html
+
+#### 2. **Email Service** (Puerto 8082)
+Microservicio que escucha eventos de Kafka y envía correos electrónicos de bienvenida.
+- **Funcionalidades**:
+  - Consumo de eventos `userRegisterTopic` desde Kafka
+  - Envío automático de emails de bienvenida usando SMTP
+  - Soporte para Gmail, Outlook y otros proveedores SMTP
+- **Tecnologías**: Spring Boot, Spring Cloud Stream, Kafka Consumer, JavaMailSender
+
+#### 3. **Metrics Service** (Puerto 8083)
+Microservicio que escucha eventos de Kafka y almacena métricas de registro de usuarios.
+- **Funcionalidades**:
+  - Consumo de eventos `userRegisterTopic` desde Kafka
+  - Generación de métricas y estadísticas de usuarios
+  - Almacenamiento en hojas de cálculo (Excel)
+- **Tecnologías**: Spring Boot, Spring Cloud Stream, Kafka Consumer, Apache POI
+
+### 🔄 Flujo de Trabajo
+
+1. **Registro de Usuario**: El cliente envía una petición REST al User Service
+2. **Persistencia**: El User Service guarda el usuario en MySQL
+3. **Publicación de Evento**: Se publica un evento `UserRegisteredEvent` en el topic de Kafka
+4. **Procesamiento Asíncrono**: 
+   - Email Service consume el evento y envía un correo de bienvenida
+   - Metrics Service consume el evento y registra las métricas en Excel
+5. **Notificación**: El usuario recibe un email de bienvenida en su bandeja de entrada
+
+### 🛠️ Infraestructura
+
+- **MySQL**: Base de datos relacional para almacenamiento de usuarios
+- **Kafka + Zookeeper**: Message broker para comunicación asíncrona entre servicios
+- **Schema Registry**: Gestión de esquemas Avro para serialización de eventos
+- **Docker Compose**: Orquestación de toda la infraestructura
 
 ## 🐳 Inicio Rápido con Docker
 
@@ -45,10 +97,16 @@ Este es un proyecto multi-módulo de Maven donde el POM principal (`fsa`) actúa
 ```
 fsa/
 ├── pom.xml (Parent POM)
-├── email-service/
+├── docker-compose.yml
+├── static/
+│   └── fsa-archiv1.png
+├── user-service/
 │   ├── pom.xml
 │   └── src/
-└── user-service/
+├── email-service2/
+│   ├── pom.xml
+│   └── src/
+└── metrics-service/
     ├── pom.xml
     └── src/
 ```
@@ -64,8 +122,9 @@ fsa/
 
 ### Módulos
 Los siguientes microservicios están configurados como módulos del proyecto principal:
-1. `email-service`
-2. `user-service`
+1. `user-service` - Servicio REST para gestión de usuarios (Puerto 8081)
+2. `email-service2` - Servicio de notificaciones por correo (Puerto 8082)
+3. `metrics-service` - Servicio de métricas y reportes (Puerto 8083)
 
 Cada módulo hereda del POM principal (`fsa`) la configuración común:
 - Versión de Java: 21
@@ -86,7 +145,7 @@ mvn validate
 
 ### Compilar solo un microservicio específico
 ```bash
-cd email-service
+cd user-service
 mvn clean install
 ```
 
@@ -97,14 +156,20 @@ mvn test
 
 ### Ejecutar un microservicio
 ```bash
-cd email-service
+# User Service
+cd user-service
 mvn spring-boot:run
 ```
 
-o
+```bash
+# Email Service
+cd email-service2
+mvn spring-boot:run
+```
 
 ```bash
-cd user-service
+# Metrics Service
+cd metrics-service
 mvn spring-boot:run
 ```
 
@@ -132,8 +197,9 @@ Para agregar un nuevo microservicio:
 3. Agregar el módulo al POM principal en la sección `<modules>`:
 ```xml
 <modules>
-    <module>email-service</module>
     <module>user-service</module>
+    <module>email-service2</module>
+    <module>metrics-service</module>
     <module>nuevo-servicio</module>
 </modules>
 ```

@@ -1,6 +1,6 @@
 package com.funlam.emailservice2.infrastructure.messaging.listeners;
 
-import com.funlam.emailservice2.application.service.EmailService;
+import com.funlam.emailservice2.application.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.avro.generic.GenericRecord;
 import org.springframework.messaging.Message;
@@ -35,25 +35,24 @@ public class UserRegisterListener implements Consumer<Message<GenericRecord>> {
             String direccion = event.get("direccion") != null ? event.get("direccion").toString() : "N/A";
             Long timestamp = (Long) event.get("timestamp");
 
-            log.info("🎯 ===== EVENTO DE USUARIO RECIBIDO =====");
-            log.info("🎯 ID Usuario: {}", id);
-            log.info("🎯 Nombre: {} {}", nombre, apellido);
-            log.info("🎯 Email: {}", email);
-            log.info("🎯 Edad: {}", edad);
-            log.info("🎯 Teléfono: {}", telefono);
-            log.info("🎯 Dirección: {}", direccion);
-            log.info("🎯 Timestamp: {}", Instant.ofEpochMilli(timestamp));
-            log.info("🎯 =======================================");
+            log.info("===== EVENTO DE USUARIO RECIBIDO =====");
+            log.info("ID Usuario: {}", id);
+            log.info("Nombre: {} {}", nombre, apellido);
+            log.info("Email: {}", email);
+            log.info("Edad: {}", edad);
+            log.info("Teléfono: {}", telefono);
+            log.info("Dirección: {}", direccion);
+            log.info("Timestamp: {}", Instant.ofEpochMilli(timestamp));
+            log.info("=======================================");
 
             // Enviar email de bienvenida
             emailService.sendWelcomeEmail(email, nombre, apellido);
 
-            log.info("✅ Evento procesado exitosamente para usuario: {}", email);
+            log.info("Evento procesado exitosamente para usuario: {}", email);
 
         } catch (Exception e) {
-            log.error("❌ Error procesando evento de usuario", e);
-            // Aquí podrías implementar lógica de retry o dead letter queue
-            throw e; // Re-lanzar para que Kafka maneje el retry
+            log.error("Error procesando evento de usuario", e);
+            throw e;
         }
     }
 }
