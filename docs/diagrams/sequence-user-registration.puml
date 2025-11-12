@@ -1,0 +1,86 @@
+@startuml UserRegistration
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title Secuencia de Registro de Usuario
+
+actor "Cliente" as Client
+participant "UserController" as Controller
+participant "UserService" as Service
+participant "UserRepository" as Repo
+database "MySQL" as DB
+participant "EventPublisher" as Publisher
+queue "Kafka" as Kafka
+participant "EmailService" as Email
+participant "MetricsService" as Metrics
+participant "SMTP Server" as SMTP
+database "File System" as FS
+
+Client -> Controller: POST /api/users\n{nombre, apellido, email, ...}
+activate Controller
+
+Controller -> Controller: Validar DTO
+Controller -> Service: createUser(dto)
+activate Service
+
+Service -> Service: Mapear DTO → Entity
+Service -> Repo: save(user)
+activate Repo
+
+Repo -> DB: INSERT INTO users
+activate DB
+DB --> Repo: User guardado
+deactivate DB
+
+Repo --> Service: User entity
+deactivate Repo
+
+Service -> Publisher: publishUserRegistered(user)
+activate Publisher
+
+Publisher -> Publisher: Mapear a Avro
+Publisher -> Kafka: Send UserRegisteredEvent
+activate Kafka
+Kafka --> Publisher: ACK
+deactivate Kafka
+
+Publisher --> Service: Evento publicado
+deactivate Publisher
+
+Service --> Controller: User creado
+deactivate Service
+
+Controller --> Client: 201 Created\nUserResponseDTO
+deactivate Controller
+
+note over Kafka, Email: Procesamiento Asíncrono
+
+Kafka -> Email: UserRegisteredEvent
+activate Email
+
+Email -> Email: Construir email HTML
+Email -> SMTP: Enviar email de bienvenida
+activate SMTP
+SMTP --> Email: Email enviado ✓
+deactivate SMTP
+
+Email --> Kafka: ACK
+deactivate Email
+
+Kafka -> Metrics: UserRegisteredEvent
+activate Metrics
+
+Metrics -> Metrics: Calcular métricas
+Metrics -> FS: Actualizar Excel
+activate FS
+FS --> Metrics: Archivo actualizado
+deactivate FS
+
+Metrics --> Kafka: ACK
+deactivate Metrics
+
+note over Client: Usuario recibe email\nde bienvenida
+
+@enduml
+

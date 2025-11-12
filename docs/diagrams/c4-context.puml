@@ -1,0 +1,19 @@
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de Contexto del Sistema - FSA
+
+Person(user, "Usuario Final", "Cliente que se registra en el sistema")
+Person(admin, "Administrador", "Gestiona usuarios y consulta métricas")
+
+System(fsa, "Sistema FSA", "Plataforma de gestión de usuarios con arquitectura de microservicios orientada a eventos")
+
+System_Ext(smtp, "Servidor SMTP", "Gmail, Outlook u otro proveedor de correo electrónico")
+
+Rel(user, fsa, "Registra usuarios, consulta información", "HTTPS/REST")
+Rel(admin, fsa, "Administra usuarios, consulta métricas", "HTTPS/REST")
+Rel(fsa, smtp, "Envía emails de bienvenida", "SMTP/TLS")
+
+@enduml

@@ -1,0 +1,86 @@
+@startuml Deployment_Docker
+!theme plain
+
+title Diagrama de Despliegue - Entorno Local (Docker Compose)
+
+node "Host Machine (macOS/Linux/Windows)" {
+
+    node "Docker Network: fsa-network" {
+
+        node "Container: fsa-mysql" <<Docker Container>> {
+            database "MySQL 8.0\n:3306" as MySQL {
+                folder "Volume:\nmysql_user_data" as MySQLVol
+            }
+        }
+
+        node "Container: fsa-zookeeper" <<Docker Container>> {
+            component "Zookeeper\n:2181" as ZK
+        }
+
+        node "Container: fsa-kafka" <<Docker Container>> {
+            component "Kafka Broker\n:9092 (external)\n:29092 (internal)" as Kafka
+        }
+
+        node "Container: fsa-schema-registry" <<Docker Container>> {
+            component "Schema Registry\n:8085" as SR
+        }
+
+        node "Container: fsa-kafka-ui" <<Docker Container>> {
+            component "Kafka UI\n:8080" as KUI
+        }
+
+        node "JVM Process 1" <<Process>> {
+            component "User Service\n:8081" as US
+        }
+
+        node "JVM Process 2" <<Process>> {
+            component "Email Service\n:8082" as ES
+        }
+
+        node "JVM Process 3" <<Process>> {
+            component "Metrics Service\n:8083" as MS
+        }
+    }
+
+    folder "Local File System" {
+        database "metrics-data/\nExcel Files" as Excel
+    }
+}
+
+cloud "Internet" {
+    component "Gmail SMTP\nsmtp.gmail.com:587" as SMTP
+    component "Web Browser\nlocalhost:8081" as Browser
+}
+
+Browser --> US : HTTP
+US --> MySQL : JDBC
+US --> Kafka : Kafka Protocol
+ES --> Kafka : Kafka Protocol
+MS --> Kafka : Kafka Protocol
+Kafka --> ZK : Coordination
+Kafka --> SR : HTTP
+ES --> SMTP : SMTP/TLS
+MS --> Excel : File I/O
+KUI --> Kafka : HTTP
+KUI --> SR : HTTP
+
+@enduml
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de Contexto del Sistema - FSA
+
+Person(user, "Usuario Final", "Cliente que se registra en el sistema")
+Person(admin, "Administrador", "Gestiona usuarios y consulta métricas")
+
+System(fsa, "Sistema FSA", "Plataforma de gestión de usuarios con arquitectura de microservicios orientada a eventos")
+
+System_Ext(smtp, "Servidor SMTP", "Gmail, Outlook u otro proveedor de correo electrónico")
+
+Rel(user, fsa, "Registra usuarios, consulta información", "HTTPS/REST")
+Rel(admin, fsa, "Administra usuarios, consulta métricas", "HTTPS/REST")
+Rel(fsa, smtp, "Envía emails de bienvenida", "SMTP/TLS")
+
+@enduml

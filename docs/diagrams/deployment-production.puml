@@ -1,0 +1,271 @@
+@startuml Deployment_Production
+!theme plain
+
+title Diagrama de Despliegue Productivo - Vista Física (Propuesto)
+
+cloud "AWS Cloud" {
+
+    node "Application Load Balancer" {
+        component "AWS ALB" as ALB
+    }
+
+    node "Kubernetes Cluster (EKS)" {
+
+        package "Namespace: fsa-production" {
+
+            node "User Service Pod 1" {
+                component "user-service:v1.0" as US1
+            }
+
+            node "User Service Pod 2" {
+                component "user-service:v1.0" as US2
+            }
+
+            node "User Service Pod 3" {
+                component "user-service:v1.0" as US3
+            }
+
+            node "Email Service Pod 1" {
+                component "email-service:v1.0" as ES1
+            }
+
+            node "Email Service Pod 2" {
+                component "email-service:v1.0" as ES2
+            }
+
+            node "Metrics Service Pod" {
+                component "metrics-service:v1.0" as MS1
+            }
+
+        }
+
+        component "Horizontal Pod Autoscaler" as HPA
+        component "Cluster Autoscaler" as CA
+    }
+
+    node "AWS MSK (Managed Kafka)" {
+        database "Kafka Broker 1\naz-1a" as K1
+        database "Kafka Broker 2\naz-1b" as K2
+        database "Kafka Broker 3\naz-1c" as K3
+
+        component "Schema Registry" as SR
+    }
+
+    node "AWS RDS MySQL" {
+        database "Primary\naz-1a" as RDS_Primary
+        database "Read Replica 1\naz-1b" as RDS_Replica1
+        database "Read Replica 2\naz-1c" as RDS_Replica2
+    }
+
+    node "AWS S3" {
+        database "Bucket:\nfsa-metrics-storage" as S3
+    }
+
+    node "AWS SES" {
+        component "Simple Email Service" as SES
+    }
+
+    node "CloudWatch" {
+        component "Logs" as CW_Logs
+        component "Metrics" as CW_Metrics
+        component "Alarms" as CW_Alarms
+    }
+
+}
+
+actor "Cliente" as Client
+
+Client --> ALB : HTTPS
+ALB --> US1 : HTTP
+ALB --> US2 : HTTP
+ALB --> US3 : HTTP
+
+US1 --> RDS_Primary : Write
+US2 --> RDS_Primary : Write
+US3 --> RDS_Primary : Write
+
+US1 --> RDS_Replica1 : Read
+US2 --> RDS_Replica2 : Read
+
+US1 --> K1 : Publish
+US2 --> K2 : Publish
+US3 --> K3 : Publish
+
+K1 --> ES1 : Consume
+K2 --> ES2 : Consume
+K1 --> MS1 : Consume
+
+ES1 --> SES : Send Email
+ES2 --> SES : Send Email
+
+MS1 --> S3 : Upload Excel
+
+US1 --> CW_Logs : Logs
+ES1 --> CW_Logs : Logs
+MS1 --> CW_Logs : Logs
+
+HPA --> US1 : Scale
+HPA --> US2 : Scale
+HPA --> US3 : Scale
+
+note right of HPA
+  Auto-scaling basado en:
+  - CPU > 70%
+  - Memory > 80%
+  - Request Rate
+end note
+
+note right of RDS_Primary
+  Multi-AZ deployment
+  Automatic failover
+  Backup diario
+end note
+
+note right of K1
+  Replication Factor: 3
+  Min In-Sync Replicas: 2
+  Retention: 7 días
+end note
+
+@enduml
+@startuml ClassDiagram_UserService
+!theme plain
+
+title Diagrama de Clases - User Service (Vista Lógica)
+
+package "domain" {
+    class User {
+        - UUID id
+        - String nombre
+        - String apellido
+        - Integer edad
+        - String email
+        - String telefono
+        - String direccion
+        --
+        + getId(): UUID
+        + getNombre(): String
+        + getEmail(): String
+        ...
+    }
+
+    interface UserRepository <<Port>> {
+        + save(User user): User
+        + findById(UUID id): Optional<User>
+        + findAll(): List<User>
+        + findByEmail(String email): Optional<User>
+        + deleteById(UUID id): void
+        + existsByEmail(String email): boolean
+    }
+}
+
+package "application" {
+    class UserService {
+        - UserRepository repository
+        - UserEventPublisher publisher
+        - UserMapper mapper
+        --
+        + createUser(UserCreateDTO dto): User
+        + updateUser(UUID id, UserUpdateDTO dto): User
+        + getUser(UUID id): User
+        + getAllUsers(): List<User>
+        + deleteUser(UUID id): void
+    }
+}
+
+package "infrastructure.controller" {
+    class UserController {
+        - UserService service
+        --
+        + createUser(UserCreateDTO dto): ResponseEntity<UserResponseDTO>
+        + updateUser(UUID id, UserUpdateDTO dto): ResponseEntity<UserResponseDTO>
+        + getUser(UUID id): ResponseEntity<UserResponseDTO>
+        + getAllUsers(): ResponseEntity<List<UserResponseDTO>>
+        + deleteUser(UUID id): ResponseEntity<Void>
+    }
+
+    class UserCreateDTO {
+        + String nombre
+        + String apellido
+        + Integer edad
+        + String email
+        + String telefono
+        + String direccion
+    }
+
+    class UserUpdateDTO {
+        + String nombre
+        + String apellido
+        + Integer edad
+        + String telefono
+        + String direccion
+    }
+
+    class UserResponseDTO {
+        + UUID id
+        + String nombre
+        + String apellido
+        + Integer edad
+        + String email
+        + String telefono
+        + String direccion
+    }
+
+    class GlobalExceptionHandler {
+        + handleValidationException(): ResponseEntity
+        + handleNotFoundException(): ResponseEntity
+        + handleDuplicateEmailException(): ResponseEntity
+    }
+}
+
+package "infrastructure.repository" {
+    interface JpaUserRepository extends JpaRepository {
+        + findByEmail(String email): Optional<User>
+        + existsByEmail(String email): boolean
+    }
+
+    class UserRepositoryAdapter implements UserRepository {
+        - JpaUserRepository jpaRepository
+        --
+        + save(User user): User
+        + findById(UUID id): Optional<User>
+        + findAll(): List<User>
+        + findByEmail(String email): Optional<User>
+        + deleteById(UUID id): void
+    }
+}
+
+package "infrastructure.messaging" {
+    class UserEventPublisher {
+        - StreamBridge streamBridge
+        --
+        + publishUserRegistered(User user): void
+    }
+}
+
+package "infrastructure.mapper" {
+    class UserMapper {
+        + toEntity(UserCreateDTO dto): User
+        + toEntity(UserUpdateDTO dto): User
+        + toDTO(User user): UserResponseDTO
+        + toDTO(List<User> users): List<UserResponseDTO>
+    }
+}
+
+' Relaciones
+UserController --> UserService : uses
+UserController --> UserCreateDTO : receives
+UserController --> UserUpdateDTO : receives
+UserController --> UserResponseDTO : returns
+UserController ..> GlobalExceptionHandler : handles errors
+
+UserService --> UserRepository : uses
+UserService --> UserEventPublisher : uses
+UserService --> UserMapper : uses
+UserService --> User : manages
+
+UserRepository <|.. UserRepositoryAdapter : implements
+UserRepositoryAdapter --> JpaUserRepository : delegates
+JpaUserRepository --> User : persists
+
+@enduml

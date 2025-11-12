@@ -1,0 +1,125 @@
+@startuml PackageDiagram_Development
+allowmixing
+!theme plain
+
+title Diagrama de Paquetes - Vista de Desarrollo
+
+package "fsa (Parent POM)" {
+
+    package "user-service" {
+        package "com.funlam.userservice" {
+            package "domain" {
+                package "model" {
+                    class User
+                }
+                package "port" {
+                    interface UserRepository
+                }
+            }
+
+            package "application" {
+                package "service" {
+                    class UserService
+                }
+            }
+
+            package "infrastructure" {
+                package "controller" {
+                    class UserController
+                    package "dto" {
+                        class UserCreateDTO
+                        class UserUpdateDTO
+                        class UserResponseDTO
+                    }
+                }
+                package "repository" {
+                    interface JpaUserRepository
+                }
+                package "adapter" {
+                    class UserRepositoryAdapter
+                }
+                package "messaging.publisher" {
+                    class UserEventPublisher
+                }
+                package "mapper" {
+                    class UserMapper
+                }
+                package "exception" {
+                    class GlobalExceptionHandler
+                }
+                package "config" {
+                    class OpenAPIConfig
+                }
+            }
+        }
+    }
+
+    package "email-service2" {
+        package "com.funlam.emailservice2" {
+            package "application" {
+                class EmailService
+            }
+            package "infrastructure.messaging.listeners" {
+                class UserRegisterListener
+            }
+        }
+    }
+
+    package "metrics-service" {
+        package "com.funlam.metricsservice" {
+            package "application" {
+                class ExcelMetricsService
+            }
+            package "infrastructure.messaging.listeners" {
+                class "UserRegisterListener" as MetricsListener
+            }
+        }
+    }
+}
+
+package "External Dependencies" {
+    package "Spring Boot" {
+        component "Spring Web"
+        component "Spring Data JPA"
+        component "Spring Cloud Stream"
+    }
+    package "Apache Kafka" {
+        component "Kafka Binder"
+        component "Avro Serializer"
+    }
+    package "Database" {
+        component "MySQL Connector"
+    }
+}
+
+infrastructure --> application : depends on
+application --> domain : depends on
+infrastructure ..> "Spring Boot" : uses
+infrastructure ..> "Apache Kafka" : uses
+infrastructure ..> "Database" : uses
+
+UserEventPublisher ..> UserRegisterListener : publishes events
+UserEventPublisher ..> MetricsListener : publishes events
+
+note right
+Domain Layer
+Sin dependencias externas
+Lógica de negocio pura
+Modelos y puertos
+end note
+
+note right
+Application Layer
+Casos de uso
+Servicios de aplicación
+Orquestación
+end note
+
+note right
+Infrastructure Layer
+Adaptadores
+Frameworks
+Detalles técnicos
+end note
+
+@enduml

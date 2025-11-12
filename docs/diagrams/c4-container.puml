@@ -1,0 +1,41 @@
+@startuml C4_Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_TOP_DOWN()
+
+title Diagrama de Contenedores - Sistema FSA
+
+Person(user, "Usuario/Admin", "Utiliza el sistema")
+
+System_Boundary(fsa, "Sistema FSA") {
+    Container(user_service, "User Service", "Spring Boot, Java 21", "API REST para gestión de usuarios. Puerto 8081")
+    Container(email_service, "Email Service", "Spring Boot, Java 21", "Servicio de notificaciones por email. Puerto 8082")
+    Container(metrics_service, "Metrics Service", "Spring Boot, Java 21", "Servicio de métricas y reportes. Puerto 8083")
+
+    ContainerDb(mysql, "MySQL Database", "MySQL 8.0", "Almacena información de usuarios")
+    Container(kafka, "Apache Kafka", "Confluent 7.5.0", "Message broker para eventos")
+    Container(schema_registry, "Schema Registry", "Confluent 7.5.0", "Gestión de esquemas Avro")
+    Container(zookeeper, "Zookeeper", "Confluent 7.5.0", "Coordinación de Kafka")
+}
+
+System_Ext(smtp, "Servidor SMTP", "Gmail SMTP")
+ContainerDb(filesystem, "File System", "Sistema de archivos", "Almacena archivos Excel")
+
+Rel(user, user_service, "Gestiona usuarios", "HTTPS/REST")
+Rel(user_service, mysql, "Lee/Escribe datos", "JDBC")
+Rel(user_service, kafka, "Publica eventos UserRegistered", "Kafka Protocol")
+Rel(user_service, schema_registry, "Registra/Valida schemas", "HTTP")
+
+Rel(kafka, email_service, "Envía eventos", "Kafka Protocol")
+Rel(kafka, metrics_service, "Envía eventos", "Kafka Protocol")
+
+Rel(email_service, schema_registry, "Valida schemas", "HTTP")
+Rel(metrics_service, schema_registry, "Valida schemas", "HTTP")
+
+Rel(email_service, smtp, "Envía emails", "SMTP/TLS")
+Rel(metrics_service, filesystem, "Escribe Excel", "File I/O")
+
+Rel(kafka, zookeeper, "Coordinación", "ZK Protocol")
+
+@enduml
+

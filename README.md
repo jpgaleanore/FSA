@@ -212,3 +212,58 @@ Para agregar un nuevo microservicio:
 - Spring Boot Starter (Web, Test, Actuator, Data JDBC disponibles)
 - Lombok (configurado en el parent)
 
+---
+
+## 📐 Documentación Arquitectónica
+
+### 📚 Documentación Completa
+
+Para una comprensión profunda de la arquitectura del sistema, consulta:
+
+**[📖 ARCHITECTURE.md](ARCHITECTURE.md)** - Documentación arquitectónica completa que incluye:
+
+- **Modelo C4** (Context, Containers, Components, Code)
+  - Nivel 1: Contexto del Sistema
+  - Nivel 2: Contenedores y tecnologías
+  - Nivel 3: Componentes internos
+  - Nivel 4: Código y clases
+  
+- **Vistas 4+1 de Kruchten**
+  - Vista Lógica (funcionalidad y patrones)
+  - Vista de Desarrollo (organización del código)
+  - Vista de Procesos (runtime y concurrencia)
+  - Vista Física (deployment e infraestructura)
+  - Escenarios (casos de uso)
+
+- **Decisiones Arquitectónicas (ADRs)**
+- **Patrones de Integración y Resiliencia**
+- **Calidad de Atributos (Performance, Seguridad, Escalabilidad)**
+
+### 📊 Diagramas
+
+Todos los diagramas arquitectónicos en PlantUML disponibles en:
+- **[docs/diagrams/](docs/diagrams/)** - Diagramas C4, UML y de despliegue
+- **[docs/README.md](docs/README.md)** - Guía de documentación por rol
+
+**Diagramas disponibles:**
+- Diagrama de Contexto (C4 Nivel 1)
+- Diagrama de Contenedores (C4 Nivel 2)
+- Diagrama de Componentes (C4 Nivel 3)
+- Diagrama de Clases (Vista Lógica)
+- Diagrama de Paquetes (Vista de Desarrollo)
+- Diagrama de Secuencia (Vista de Procesos)
+- Diagrama de Actividades (Vista de Procesos)
+- Diagrama de Despliegue Local (Docker)
+- Diagrama de Despliegue Productivo (AWS/K8s)
+
+### 🎯 Guía Rápida por Rol
+
+| Rol | Documentos Recomendados |
+|-----|-------------------------|
+| **Desarrollador** | [Componentes](ARCHITECTURE.md#nivel-3-componentes), [Clases](docs/diagrams/class-diagram-user-service.puml), [Paquetes](docs/diagrams/package-diagram-development.puml) |
+| **Arquitecto** | [ARCHITECTURE.md](ARCHITECTURE.md) completo, todos los [diagramas](docs/diagrams/) |
+| **DevOps/SRE** | [Vista Física](ARCHITECTURE.md#vista-física), [Deployment](docs/diagrams/deployment-docker.puml) |
+| **Product Owner** | [Contexto](ARCHITECTURE.md#nivel-1-contexto-del-sistema), [Escenarios](ARCHITECTURE.md#escenarios-casos-de-uso) |
+
+---
+

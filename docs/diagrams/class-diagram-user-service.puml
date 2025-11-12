@@ -1,0 +1,141 @@
+@startuml ClassDiagram_UserService
+!theme plain
+
+title Diagrama de Clases - User Service (Vista Lógica)
+
+package "domain" {
+    class User {
+        - UUID id
+        - String nombre
+        - String apellido
+        - Integer edad
+        - String email
+        - String telefono
+        - String direccion
+        --
+        + getId(): UUID
+        + getNombre(): String
+        + getEmail(): String
+        ...
+    }
+
+    interface UserRepository <<Port>> {
+        + save(User user): User
+        + findById(UUID id): Optional<User>
+        + findAll(): List<User>
+        + findByEmail(String email): Optional<User>
+        + deleteById(UUID id): void
+        + existsByEmail(String email): boolean
+    }
+}
+
+package "application" {
+    class UserService {
+        - UserRepository repository
+        - UserEventPublisher publisher
+        - UserMapper mapper
+        --
+        + createUser(UserCreateDTO dto): User
+        + updateUser(UUID id, UserUpdateDTO dto): User
+        + getUser(UUID id): User
+        + getAllUsers(): List<User>
+        + deleteUser(UUID id): void
+    }
+}
+
+package "infrastructure.controller" {
+    class UserController {
+        - UserService service
+        --
+        + createUser(UserCreateDTO dto): ResponseEntity<UserResponseDTO>
+        + updateUser(UUID id, UserUpdateDTO dto): ResponseEntity<UserResponseDTO>
+        + getUser(UUID id): ResponseEntity<UserResponseDTO>
+        + getAllUsers(): ResponseEntity<List<UserResponseDTO>>
+        + deleteUser(UUID id): ResponseEntity<Void>
+    }
+
+    class UserCreateDTO {
+        + String nombre
+        + String apellido
+        + Integer edad
+        + String email
+        + String telefono
+        + String direccion
+    }
+
+    class UserUpdateDTO {
+        + String nombre
+        + String apellido
+        + Integer edad
+        + String telefono
+        + String direccion
+    }
+
+    class UserResponseDTO {
+        + UUID id
+        + String nombre
+        + String apellido
+        + Integer edad
+        + String email
+        + String telefono
+        + String direccion
+    }
+
+    class GlobalExceptionHandler {
+        + handleValidationException(): ResponseEntity
+        + handleNotFoundException(): ResponseEntity
+        + handleDuplicateEmailException(): ResponseEntity
+    }
+}
+
+package "infrastructure.repository" {
+    interface JpaUserRepository extends JpaRepository {
+        + findByEmail(String email): Optional<User>
+        + existsByEmail(String email): boolean
+    }
+
+    class UserRepositoryAdapter implements UserRepository {
+        - JpaUserRepository jpaRepository
+        --
+        + save(User user): User
+        + findById(UUID id): Optional<User>
+        + findAll(): List<User>
+        + findByEmail(String email): Optional<User>
+        + deleteById(UUID id): void
+    }
+}
+
+package "infrastructure.messaging" {
+    class UserEventPublisher {
+        - StreamBridge streamBridge
+        --
+        + publishUserRegistered(User user): void
+    }
+}
+
+package "infrastructure.mapper" {
+    class UserMapper {
+        + toEntity(UserCreateDTO dto): User
+        + toEntity(UserUpdateDTO dto): User
+        + toDTO(User user): UserResponseDTO
+        + toDTO(List<User> users): List<UserResponseDTO>
+    }
+}
+
+' Relaciones
+UserController --> UserService : uses
+UserController --> UserCreateDTO : receives
+UserController --> UserUpdateDTO : receives
+UserController --> UserResponseDTO : returns
+UserController ..> GlobalExceptionHandler : handles errors
+
+UserService --> UserRepository : uses
+UserService --> UserEventPublisher : uses
+UserService --> UserMapper : uses
+UserService --> User : manages
+
+UserRepository <|.. UserRepositoryAdapter : implements
+UserRepositoryAdapter --> JpaUserRepository : delegates
+JpaUserRepository --> User : persists
+
+@enduml

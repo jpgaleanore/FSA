@@ -1,0 +1,40 @@
+@startuml C4_Component_UserService
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Diagrama de Componentes - User Service
+
+Container(client, "Cliente HTTP", "Browser/API Client", "Realiza peticiones REST")
+
+Container_Boundary(user_service, "User Service") {
+    Component(controller, "UserController", "Spring MVC", "Expone API REST para gestión de usuarios")
+    Component(service, "UserService", "Service Layer", "Lógica de negocio de usuarios")
+    Component(mapper, "UserMapper", "Mapper", "Transforma DTOs a Entidades y viceversa")
+    Component(repository, "UserRepository", "Port Interface", "Interfaz de persistencia")
+    Component(adapter, "UserRepositoryAdapter", "Adapter", "Implementación del puerto")
+    Component(jpa_repo, "JpaUserRepository", "Spring Data JPA", "Acceso a datos")
+    Component(publisher, "UserEventPublisher", "Event Publisher", "Publica eventos a Kafka")
+    Component(exception_handler, "GlobalExceptionHandler", "Exception Handler", "Manejo centralizado de errores")
+}
+
+ContainerDb(mysql, "MySQL Database", "MySQL 8.0", "Base de datos de usuarios")
+Container(kafka, "Apache Kafka", "Message Broker", "Sistema de mensajería")
+
+Rel(client, controller, "Calls", "HTTPS/JSON")
+Rel(controller, service, "Uses")
+Rel(controller, mapper, "Uses")
+Rel(controller, exception_handler, "Handles errors")
+
+Rel(service, repository, "Uses")
+Rel(service, publisher, "Publishes events")
+Rel(service, mapper, "Uses")
+
+Rel(repository, adapter, "Implements")
+Rel(adapter, jpa_repo, "Delegates to")
+
+Rel(jpa_repo, mysql, "Reads/Writes", "JDBC")
+Rel(publisher, kafka, "Publishes", "Kafka Protocol")
+
+@enduml
+

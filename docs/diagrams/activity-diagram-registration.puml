@@ -1,0 +1,88 @@
+@startuml ActivityDiagram_UserRegistration
+!theme plain
+
+title Diagrama de Actividades - Registro de Usuario (Vista de Procesos)
+
+start
+
+:Cliente envía POST /api/users;
+
+:Validar datos de entrada;
+
+if (¿Datos válidos?) then (no)
+    :Retornar 400 Bad Request;
+    stop
+else (sí)
+
+    :Verificar si email existe;
+
+    if (¿Email ya registrado?) then (sí)
+        :Retornar 409 Conflict;
+        stop
+    else (no)
+
+        :Guardar usuario en MySQL;
+
+        if (¿Guardado exitoso?) then (no)
+            :Retornar 500 Internal Error;
+            stop
+        else (sí)
+
+            :Generar UUID para usuario;
+
+            fork
+                :Publicar UserRegisteredEvent a Kafka;
+
+                if (¿Kafka disponible?) then (no)
+                    :Reintentar envío (3 veces);
+                    if (¿Éxito después de reintentos?) then (no)
+                        :Enviar a Dead Letter Queue;
+                        note right: Usuario guardado\npero evento se procesará después
+                    endif
+                endif
+
+            fork again
+                :Retornar 201 Created al cliente;
+                :Enviar UserResponseDTO;
+                stop
+            end fork
+
+            ' Procesamiento asíncrono
+            partition "Procesamiento Asíncrono" {
+
+                split
+                    :Email Service consume evento;
+                    :Construir email HTML;
+                    :Enviar email via SMTP;
+
+                    if (¿Email enviado?) then (sí)
+                        :Log: Email enviado exitosamente;
+                    else (no)
+                        :Log: Error al enviar email;
+                        :Reintentar envío;
+                    endif
+
+                split again
+                    :Metrics Service consume evento;
+                    :Calcular métricas del día;
+                    :Abrir/Crear archivo Excel;
+                    :Agregar registro de usuario;
+                    :Guardar archivo Excel;
+
+                    if (¿Excel guardado?) then (sí)
+                        :Log: Métricas actualizadas;
+                    else (no)
+                        :Log: Error al guardar métricas;
+                    endif
+
+                end split
+
+            }
+
+        endif
+    endif
+endif
+
+stop
+
+@enduml
